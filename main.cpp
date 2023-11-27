@@ -11,6 +11,7 @@
 int main(int argc, char *argv[])
 {
     std::vector<std::thread> workers;
+    dev_options dev_ops;
     char err_buff[PCAP_ERRBUF_SIZE];
 
     // Parse args
@@ -20,7 +21,11 @@ int main(int argc, char *argv[])
     args::Positional<std::string> desc(parser, "desc", "Desc NIC", args::Options::Required);
     args::Group options(parser, "device options:", args::Group::Validators::DontCare, args::Options::Global);
     args::ValueFlag<std::string> filter_str(options, "filter", "Filter string", { 'f' });
-    args::Flag promisc(options, "promisc", "Use promiscuous mode", {'p', "promisc"});
+    args::Flag promisc(options, "promisc", "Use promiscuous mode", {'p', "promisc"}, false);
+    args::Flag monitor(options, "monitor", "Use monitor(rfmon) mode for IEEE 802.11 wireless LANs", {'m', "monitor"}, false);
+    args::ValueFlag<int> snaplen(options, "snaplen", "Snapshot length for net data", {"snaplen"}, 0);
+    args::ValueFlag<int> timeout(options, "timeout", "Packet buffer timeout(ms), a negative value means immediate mode is used", {'t', "timeout"}, 0);
+    args::ValueFlag<int> bufflen(options, "bufflen", "Packet buffer size", {"bufflen"}, 0);
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help&) {
@@ -50,10 +55,16 @@ int main(int argc, char *argv[])
 
     // TODO singal INT to quit
 
+    // Format options
+    dev_ops.promisc = promisc;
+    dev_ops.monitor = monitor;
+    dev_ops.snaplen = snaplen;
+    dev_ops.timeout = timeout;
+    dev_ops.bufflen = bufflen;
+
     // Worker threads
     for(const std::string& src : src_NICs) {
-        // TODO set options
-        workers.emplace_back(work_traffic, src, desc.Get(), dev_options{}, filter_str.Get());
+        workers.emplace_back(work_traffic, src, desc.Get(), dev_ops, filter_str.Get());
     }
     std::for_each(workers.begin(), workers.end(),
         std::mem_fn(&std::thread::join));
