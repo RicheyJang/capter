@@ -10,7 +10,9 @@ find_package(Threads REQUIRED)
 
 add_executable(capter main.cpp
         device.cpp
-        device.h)
+        device.h
+        worker.cpp
+        worker.h)
 target_include_directories(capter PRIVATE include)
 target_link_libraries(capter PRIVATE Threads::Threads)
 target_link_libraries(capter PRIVATE spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)

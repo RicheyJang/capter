@@ -37,6 +37,9 @@ pcap_t *open_dev(const std::string& name, std::string filter) {
     }
 
     // TODO set options
+    // pcap_set_snaplen(dev, 65535);
+    // pcap_set_promisc(dev, 0);
+    // pcap_set_timeout(dev, 1000);
 
     // Activate
     err = pcap_activate(dev); // maybe PERM_DENIED, need root

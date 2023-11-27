@@ -2,6 +2,7 @@
 #include <vector>
 #include <thread>
 #include "device.h"
+#include "worker.h"
 #include "args.hxx"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -16,9 +17,10 @@ int main(int argc, char *argv[])
     args::ArgumentParser parser("Forward traffic from multiple NIC to a single NIC, based on libpcap.", get_dev_desc());
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlagList<std::string> src_NICs(parser, "src", "Source NICs, required", { 's' });
-    args::ValueFlag<std::string> filter_str(parser, "filter", "Filter string", { 'f' });
-    args::Flag promisc(parser, "promisc", "Use promiscuous mode", {'p', "promisc"});
-    args::Positional<std::string> desc(parser, "desc", "Desc NIC");
+    args::Positional<std::string> desc(parser, "desc", "Desc NIC", args::Options::Required);
+    args::Group options(parser, "device options:", args::Group::Validators::DontCare, args::Options::Global);
+    args::ValueFlag<std::string> filter_str(options, "filter", "Filter string", { 'f' });
+    args::Flag promisc(options, "promisc", "Use promiscuous mode", {'p', "promisc"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (args::Help&) {
@@ -46,5 +48,12 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    // TODO main logic in worker threads
+    // TODO singal INT to quit
+
+    // Worker threads
+    for(const std::string& src : src_NICs) {
+        workers.emplace_back(work_traffic, src, desc.Get());
+    }
+    std::for_each(workers.begin(), workers.end(),
+        std::mem_fn(&std::thread::join));
 }
