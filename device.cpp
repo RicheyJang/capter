@@ -23,7 +23,7 @@ std::string get_dev_desc() {
 }
 
 // open device with options and filter
-pcap_t *open_dev(const std::string& name, std::string filter) {
+pcap_t *open_dev(const std::string& name, dev_options options, std::string filter, bpf_program* fpvp) {
     bpf_u_int32 mask; /* The netmask of our sniffing device */
     bpf_u_int32 net;  /* The IP of our sniffing device */
     bpf_program fp{}; /* The compiled filter expression */
@@ -36,10 +36,32 @@ pcap_t *open_dev(const std::string& name, std::string filter) {
         return nullptr;
     }
 
-    // TODO set options
-    // pcap_set_snaplen(dev, 65535);
-    // pcap_set_promisc(dev, 0);
-    // pcap_set_timeout(dev, 1000);
+    // Set options
+    if(options.snaplen > 0) {
+        pcap_set_snaplen(dev, options.snaplen);
+    } else {
+        pcap_set_snaplen(dev, DEFAULT_SNAP_LEN);
+    }
+    if(options.promisc) {
+        pcap_set_promisc(dev, 1);
+    } else {
+        pcap_set_promisc(dev, 0);
+    }
+    if(options.monitor) {
+        pcap_set_rfmon(dev, 1);
+    }
+    if(options.timeout > 0) {
+        pcap_set_timeout(dev, options.timeout);
+    } else if(options.timeout == 0) {
+        pcap_set_timeout(dev, DEFAULT_BUFF_TIMEOUT);
+    } else {
+        pcap_set_immediate_mode(dev, 1);
+    }
+    if(options.bufflen > 0) {
+        pcap_set_buffer_size(dev, options.bufflen);
+    } else {
+        pcap_set_buffer_size(dev, DEFAULT_SNAP_LEN * 10);
+    }
 
     // Activate
     err = pcap_activate(dev); // maybe PERM_DENIED, need root
@@ -65,6 +87,8 @@ pcap_t *open_dev(const std::string& name, std::string filter) {
             pcap_close(dev);
             return nullptr;
         }
+        if(fpvp != nullptr)
+            *fpvp = fp;
     }
     return dev;
 }

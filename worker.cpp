@@ -2,14 +2,20 @@
 
 void traffic(u_char *args, const pcap_pkthdr *header, const u_char *packet);
 
-void work_traffic(const std::string& src, const std::string& desc) {
-    pcap_t* s_dev = open_dev(src);
+void work_traffic(const std::string& src, const std::string& desc, dev_options src_options, const std::string& src_filter) {
+    bpf_program fp{};
+    // Open src and desc devices
+    pcap_t* s_dev = open_dev(src, src_options, src_filter, &fp);
     pcap_t* d_dev = open_dev(desc);
     if(s_dev == nullptr || d_dev == nullptr) {
         return;
     }
+    // Main Traffic Loop
     pcap_loop(s_dev, -1, traffic, reinterpret_cast<u_char*>(d_dev));
-    // TODO pcap_freecode(&fp);
+    // Over
+    if(fp.bf_insns != nullptr) {
+        pcap_freecode(&fp);
+    }
     pcap_close(s_dev);
     pcap_close(d_dev);
 }

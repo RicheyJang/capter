@@ -52,7 +52,8 @@ int main(int argc, char *argv[])
 
     // Worker threads
     for(const std::string& src : src_NICs) {
-        workers.emplace_back(work_traffic, src, desc.Get());
+        // TODO set options
+        workers.emplace_back(work_traffic, src, desc.Get(), dev_options{}, filter_str.Get());
     }
     std::for_each(workers.begin(), workers.end(),
         std::mem_fn(&std::thread::join));
